@@ -1,8 +1,8 @@
-import { View, Text, SafeAreaView, FlatList, RefreshControl } from 'react-native';
+import { View, Text, SafeAreaView, FlatList, RefreshControl, Pressable } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import { router } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInUp, FadeIn } from 'react-native-reanimated';
 import { Button, Card, Input } from '@/components/ui';
 import { useUserStore } from '@/lib/stores/userStore';
 import { useTripStore } from '@/lib/stores/tripStore';
@@ -66,175 +66,281 @@ export default function TripsScreen() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
+  function getGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
   return (
-    <SafeAreaView className="flex-1 bg-cream">
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF9F0' }}>
       {/* Header */}
-      <View className="px-6 pt-4 pb-2">
-        <Animated.View entering={FadeInDown.delay(100)}>
-          <Text className="text-3xl font-bold text-charcoal">My Trips</Text>
-          <Text className="text-gray-500 mt-1">
-            {user?.display_name ? `Hey ${user.display_name}!` : 'Plan your adventures'}
+      <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 }}>
+        <Animated.View entering={FadeInDown.delay(100).springify()}>
+          <Text style={{ color: '#6B7280', fontSize: 16, fontWeight: '500' }}>
+            {getGreeting()}{user?.display_name ? `, ${user.display_name}` : ''}
           </Text>
+          <Text style={{ fontSize: 30, fontWeight: 'bold', color: '#2C3E50', marginTop: 4 }}>Your Trips</Text>
         </Animated.View>
       </View>
 
       {/* Action Buttons */}
-      <View className="px-6 py-4 flex-row gap-3">
-        <View className="flex-1">
+      <Animated.View
+        entering={FadeInUp.delay(200).springify()}
+        style={{ flexDirection: 'row', paddingHorizontal: 24, paddingVertical: 12, gap: 12 }}
+      >
+        <View style={{ flex: 1 }}>
           <Button
             onPress={() => setShowCreateModal(true)}
             variant="primary"
-            icon={<FontAwesome name="plus" size={16} color="white" />}
+            fullWidth
+            icon={<FontAwesome name="plus" size={14} color="white" />}
           >
             New Trip
           </Button>
         </View>
-        <View className="flex-1">
+        <View style={{ flex: 1 }}>
           <Button
             onPress={() => setShowJoinModal(true)}
-            variant="outline"
-            icon={<FontAwesome name="users" size={16} color="#FF6B6B" />}
+            variant="secondary"
+            fullWidth
+            icon={<FontAwesome name="users" size={14} color="white" />}
           >
             Join Trip
           </Button>
         </View>
-      </View>
+      </Animated.View>
 
       {/* Trips List */}
       <FlatList
         data={trips}
         keyExtractor={(item) => item.id}
-        contentContainerClassName="px-6 pb-6"
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24, paddingTop: 8 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF6B6B" />
         }
         ListEmptyComponent={
-          <Animated.View entering={FadeInUp.delay(200)} className="items-center py-16">
-            <Text className="text-6xl mb-4">{'🗺️'}</Text>
-            <Text className="text-xl font-semibold text-charcoal mb-2">No trips yet</Text>
-            <Text className="text-gray-500 text-center">
-              Create a new trip or join one{'\n'}with a code from a friend!
+          <Animated.View
+            entering={FadeIn.delay(300)}
+            style={{ alignItems: 'center', paddingVertical: 80, paddingHorizontal: 32 }}
+          >
+            <View
+              style={{
+                width: 96,
+                height: 96,
+                backgroundColor: 'white',
+                borderRadius: 24,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 24,
+                shadowColor: '#2C3E50',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.08,
+                shadowRadius: 12,
+                elevation: 4,
+              }}
+            >
+              <Text style={{ fontSize: 48 }}>{'🗺️'}</Text>
+            </View>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#2C3E50', marginBottom: 12 }}>No trips yet</Text>
+            <Text style={{ color: '#6B7280', textAlign: 'center', fontSize: 16, lineHeight: 24 }}>
+              Start your adventure! Create a new trip{'\n'}or join one with a friend's code.
             </Text>
           </Animated.View>
         }
         renderItem={({ item, index }) => (
-          <Animated.View entering={FadeInUp.delay(100 * index)}>
-            <Card
-              className="mb-4"
+          <Animated.View entering={FadeInUp.delay(100 + 50 * index).springify()}>
+            <Pressable
               onPress={() => router.push(`/trip/${item.id}`)}
+              className="mb-4"
             >
-              <View className="flex-row items-start justify-between">
-                <View className="flex-1">
-                  <Text className="text-xl font-bold text-charcoal">{item.name}</Text>
-                  {(item.start_date || item.end_date) && (
-                    <Text className="text-gray-500 mt-1">
-                      {formatDate(item.start_date)}
-                      {item.end_date && ` - ${formatDate(item.end_date)}`}
-                    </Text>
-                  )}
-                  <View className="flex-row items-center mt-2">
-                    <FontAwesome name="users" size={14} color="#9CA3AF" />
-                    <Text className="text-gray-500 ml-2">
-                      {item.memberCount} {item.memberCount === 1 ? 'member' : 'members'}
-                    </Text>
+              <View
+                className="bg-white rounded-3xl p-5"
+                style={{
+                  shadowColor: '#2C3E50',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.06,
+                  shadowRadius: 8,
+                  elevation: 2,
+                }}
+              >
+                <View className="flex-row items-start justify-between">
+                  <View className="flex-1 mr-3">
+                    <Text className="text-xl font-bold text-charcoal">{item.name}</Text>
+                    {(item.start_date || item.end_date) && (
+                      <View className="flex-row items-center mt-2">
+                        <FontAwesome name="calendar" size={12} color="#9CA3AF" />
+                        <Text className="text-gray-500 ml-2 text-sm">
+                          {formatDate(item.start_date)}
+                          {item.end_date && ` → ${formatDate(item.end_date)}`}
+                        </Text>
+                      </View>
+                    )}
+                    <View className="flex-row items-center mt-2">
+                      <FontAwesome name="users" size={12} color="#9CA3AF" />
+                      <Text className="text-gray-500 ml-2 text-sm">
+                        {item.memberCount} {item.memberCount === 1 ? 'traveler' : 'travelers'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="bg-teal-100 px-3 py-1.5 rounded-xl">
+                    <Text className="text-teal-600 font-bold text-xs tracking-wider">{item.join_code}</Text>
                   </View>
                 </View>
-                <View className="bg-coral-100 px-3 py-1 rounded-full">
-                  <Text className="text-coral-500 font-semibold text-xs">{item.join_code}</Text>
-                </View>
               </View>
-            </Card>
+            </Pressable>
           </Animated.View>
         )}
       />
 
       {/* Create Trip Modal */}
       {showCreateModal && (
-        <View className="absolute inset-0 bg-black/50 items-center justify-center px-6">
-          <Animated.View entering={FadeInUp.springify()} className="w-full">
-            <Card className="p-6">
-              <Text className="text-2xl font-bold text-charcoal mb-4">Create New Trip</Text>
-
-              <Input
-                label="Trip Name"
-                value={tripName}
-                onChangeText={setTripName}
-                placeholder="e.g., Summer in Italy"
-                error={error}
-              />
-
-              <View className="flex-row gap-3 mt-6">
-                <View className="flex-1">
-                  <Button
-                    onPress={() => {
-                      setShowCreateModal(false);
-                      setTripName('');
-                      setError('');
-                    }}
-                    variant="ghost"
-                  >
-                    Cancel
-                  </Button>
+        <Pressable
+          onPress={() => {
+            setShowCreateModal(false);
+            setTripName('');
+            setError('');
+          }}
+          className="absolute inset-0 bg-black/50 items-center justify-center px-6"
+        >
+          <Animated.View
+            entering={FadeInUp.springify()}
+            className="w-full"
+          >
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              <View
+                className="bg-white rounded-3xl p-6"
+                style={{
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 10 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 20,
+                  elevation: 10,
+                }}
+              >
+                <View className="items-center mb-4">
+                  <View className="w-16 h-16 bg-coral-100 rounded-2xl items-center justify-center mb-4">
+                    <Text className="text-3xl">{'✈️'}</Text>
+                  </View>
+                  <Text className="text-2xl font-bold text-charcoal">Create New Trip</Text>
+                  <Text className="text-gray-500 text-center mt-1">
+                    Give your adventure a name
+                  </Text>
                 </View>
-                <View className="flex-1">
-                  <Button
-                    onPress={handleCreateTrip}
-                    disabled={!tripName.trim() || isLoading}
-                  >
-                    {isLoading ? 'Creating...' : 'Create'}
-                  </Button>
+
+                <Input
+                  label="Trip Name"
+                  value={tripName}
+                  onChangeText={setTripName}
+                  placeholder="e.g., Summer in Italy"
+                  error={error}
+                />
+
+                <View className="flex-row gap-3 mt-6">
+                  <View className="flex-1">
+                    <Button
+                      onPress={() => {
+                        setShowCreateModal(false);
+                        setTripName('');
+                        setError('');
+                      }}
+                      variant="ghost"
+                      fullWidth
+                    >
+                      Cancel
+                    </Button>
+                  </View>
+                  <View className="flex-1">
+                    <Button
+                      onPress={handleCreateTrip}
+                      disabled={!tripName.trim() || isLoading}
+                      fullWidth
+                    >
+                      {isLoading ? 'Creating...' : 'Create'}
+                    </Button>
+                  </View>
                 </View>
               </View>
-            </Card>
+            </Pressable>
           </Animated.View>
-        </View>
+        </Pressable>
       )}
 
       {/* Join Trip Modal */}
       {showJoinModal && (
-        <View className="absolute inset-0 bg-black/50 items-center justify-center px-6">
-          <Animated.View entering={FadeInUp.springify()} className="w-full">
-            <Card className="p-6">
-              <Text className="text-2xl font-bold text-charcoal mb-2">Join a Trip</Text>
-              <Text className="text-gray-500 mb-4">
-                Enter the 6-character code shared by your friend
-              </Text>
-
-              <Input
-                label="Trip Code"
-                value={joinCode}
-                onChangeText={(text) => setJoinCode(text.toUpperCase())}
-                placeholder="e.g., ABC123"
-                error={error}
-                autoCapitalize="characters"
-                maxLength={6}
-              />
-
-              <View className="flex-row gap-3 mt-6">
-                <View className="flex-1">
-                  <Button
-                    onPress={() => {
-                      setShowJoinModal(false);
-                      setJoinCode('');
-                      setError('');
-                    }}
-                    variant="ghost"
-                  >
-                    Cancel
-                  </Button>
+        <Pressable
+          onPress={() => {
+            setShowJoinModal(false);
+            setJoinCode('');
+            setError('');
+          }}
+          className="absolute inset-0 bg-black/50 items-center justify-center px-6"
+        >
+          <Animated.View
+            entering={FadeInUp.springify()}
+            className="w-full"
+          >
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              <View
+                className="bg-white rounded-3xl p-6"
+                style={{
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 10 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 20,
+                  elevation: 10,
+                }}
+              >
+                <View className="items-center mb-4">
+                  <View className="w-16 h-16 bg-teal-100 rounded-2xl items-center justify-center mb-4">
+                    <Text className="text-3xl">{'🤝'}</Text>
+                  </View>
+                  <Text className="text-2xl font-bold text-charcoal">Join a Trip</Text>
+                  <Text className="text-gray-500 text-center mt-1">
+                    Enter the code from your friend
+                  </Text>
                 </View>
-                <View className="flex-1">
-                  <Button
-                    onPress={handleJoinTrip}
-                    disabled={joinCode.length !== 6 || isLoading}
-                  >
-                    {isLoading ? 'Joining...' : 'Join'}
-                  </Button>
+
+                <Input
+                  label="Trip Code"
+                  value={joinCode}
+                  onChangeText={(text) => setJoinCode(text.toUpperCase())}
+                  placeholder="e.g., ABC123"
+                  error={error}
+                  autoCapitalize="characters"
+                  maxLength={6}
+                />
+
+                <View className="flex-row gap-3 mt-6">
+                  <View className="flex-1">
+                    <Button
+                      onPress={() => {
+                        setShowJoinModal(false);
+                        setJoinCode('');
+                        setError('');
+                      }}
+                      variant="ghost"
+                      fullWidth
+                    >
+                      Cancel
+                    </Button>
+                  </View>
+                  <View className="flex-1">
+                    <Button
+                      onPress={handleJoinTrip}
+                      disabled={joinCode.length !== 6 || isLoading}
+                      fullWidth
+                      variant="secondary"
+                    >
+                      {isLoading ? 'Joining...' : 'Join'}
+                    </Button>
+                  </View>
                 </View>
               </View>
-            </Card>
+            </Pressable>
           </Animated.View>
-        </View>
+        </Pressable>
       )}
     </SafeAreaView>
   );

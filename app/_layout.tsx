@@ -2,10 +2,11 @@ import '../global.css';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { ThemeProvider, DefaultTheme } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack, router, useSegments } from 'expo-router';
+import { Stack, Redirect } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { useUserStore } from '@/lib/stores/userStore';
+import { View, Text, ActivityIndicator } from 'react-native';
+import { useUserStore, useHydration } from '@/lib/stores/userStore';
 
 export {
   ErrorBoundary,
@@ -33,47 +34,32 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
-  const { isOnboarded, isLoading, loadUser } = useUserStore();
-  const segments = useSegments();
+  const { isOnboarded } = useUserStore();
+  const hasHydrated = useHydration();
 
   useEffect(() => {
     if (error) throw error;
   }, [error]);
 
   useEffect(() => {
-    loadUser();
-  }, []);
-
-  useEffect(() => {
-    if (loaded && !isLoading) {
+    if (loaded && hasHydrated) {
       SplashScreen.hideAsync();
     }
-  }, [loaded, isLoading]);
+  }, [loaded, hasHydrated]);
 
-  // Handle navigation based on onboarding status
-  useEffect(() => {
-    if (!loaded || isLoading) return;
-
-    const inOnboarding = segments[0] === 'onboarding';
-
-    if (!isOnboarded && !inOnboarding) {
-      router.replace('/onboarding');
-    } else if (isOnboarded && inOnboarding) {
-      router.replace('/(tabs)');
-    }
-  }, [isOnboarded, isLoading, loaded, segments]);
-
-  if (!loaded || isLoading) {
-    return null;
+  if (!loaded || !hasHydrated) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#FFF9F0', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#FF6B6B" />
+        <Text style={{ marginTop: 16, color: '#2C3E50' }}>Loading TripTogether...</Text>
+      </View>
+    );
   }
 
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
   return (
     <ThemeProvider value={TripTogetherTheme}>
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true }} />

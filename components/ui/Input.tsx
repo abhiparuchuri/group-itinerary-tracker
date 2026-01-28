@@ -41,9 +41,12 @@ export function Input({
     borderColor: interpolateColor(
       focusAnim.value,
       [0, 1],
-      ['#E5E5E5', '#4ECDC4'] // Gray to Teal
+      ['#E8E8E8', '#4ECDC4'] // Light gray to Teal
     ),
-    transform: [{ scale: withSpring(focusAnim.value === 1 ? 1.02 : 1, { damping: 15 }) }],
+  }));
+
+  const animatedShadowStyle = useAnimatedStyle(() => ({
+    shadowOpacity: withSpring(focusAnim.value === 1 ? 0.12 : 0.04, { damping: 15 }),
   }));
 
   function handleFocus() {
@@ -59,15 +62,24 @@ export function Input({
   return (
     <View className="w-full">
       {label && (
-        <Text className="text-charcoal font-semibold mb-2 text-base">
+        <Text className="text-charcoal font-bold mb-3 text-base">
           {label}
         </Text>
       )}
 
       <AnimatedView
-        style={animatedBorderStyle}
+        style={[
+          animatedBorderStyle,
+          animatedShadowStyle,
+          {
+            shadowColor: '#4ECDC4',
+            shadowOffset: { width: 0, height: 2 },
+            shadowRadius: 8,
+            elevation: 2,
+          }
+        ]}
         className={`
-          flex-row items-center bg-white rounded-2xl px-4 py-3 border-2
+          flex-row items-center bg-gray-50 rounded-2xl px-5 py-4 border-2
           ${error ? 'border-coral-500' : ''}
         `}
       >
@@ -77,21 +89,27 @@ export function Input({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor="#A0AEC0"
           secureTextEntry={secureTextEntry}
           autoCapitalize={autoCapitalize}
           keyboardType={keyboardType}
           maxLength={maxLength}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          className="flex-1 text-charcoal text-base"
+          className="flex-1 text-charcoal text-lg font-medium"
+          style={{ fontSize: 18 }}
         />
       </AnimatedView>
 
       {error && (
-        <Text className="text-coral-500 text-sm mt-1 ml-1">
-          {error}
-        </Text>
+        <Animated.View
+          entering={require('react-native-reanimated').FadeIn.duration(200)}
+          className="flex-row items-center mt-2 ml-1"
+        >
+          <Text className="text-coral-500 text-sm font-medium">
+            {error}
+          </Text>
+        </Animated.View>
       )}
     </View>
   );

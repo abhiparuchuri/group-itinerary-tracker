@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -20,16 +20,21 @@ interface ButtonProps {
   icon?: React.ReactNode;
 }
 
-const variantStyles: Record<ButtonVariant, { bg: string; text: string; border?: string }> = {
-  primary: { bg: 'bg-coral-500', text: 'text-white' },
-  secondary: { bg: 'bg-teal-400', text: 'text-white' },
-  outline: { bg: 'bg-transparent', text: 'text-coral-500', border: 'border-2 border-coral-500' },
-  ghost: { bg: 'bg-transparent', text: 'text-charcoal' },
+const variantConfig: Record<ButtonVariant, {
+  bg: string;
+  text: string;
+  border?: string;
+  shadowColor: string;
+}> = {
+  primary: { bg: 'bg-coral-500', text: 'text-white', shadowColor: '#FF6B6B' },
+  secondary: { bg: 'bg-teal-400', text: 'text-white', shadowColor: '#4ECDC4' },
+  outline: { bg: 'bg-transparent', text: 'text-coral-500', border: 'border-2 border-coral-500', shadowColor: 'transparent' },
+  ghost: { bg: 'bg-transparent', text: 'text-charcoal', shadowColor: 'transparent' },
 };
 
 const sizeStyles: Record<ButtonSize, { container: string; text: string }> = {
-  sm: { container: 'px-4 py-2', text: 'text-sm' },
-  md: { container: 'px-6 py-3', text: 'text-base' },
+  sm: { container: 'px-5 py-2.5', text: 'text-sm' },
+  md: { container: 'px-6 py-3.5', text: 'text-base' },
   lg: { container: 'px-8 py-4', text: 'text-lg' },
 };
 
@@ -43,21 +48,32 @@ export function Button({
   icon,
 }: ButtonProps) {
   const scale = useSharedValue(1);
+  const shadowOpacity = useSharedValue(0.25);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
   function handlePressIn() {
-    scale.value = withSpring(0.95, { damping: 10, stiffness: 400 });
+    scale.value = withSpring(0.96, { damping: 12, stiffness: 400 });
+    shadowOpacity.value = withSpring(0.15);
   }
 
   function handlePressOut() {
-    scale.value = withSpring(1, { damping: 10, stiffness: 400 });
+    scale.value = withSpring(1, { damping: 12, stiffness: 400 });
+    shadowOpacity.value = withSpring(0.25);
   }
 
-  const { bg, text, border } = variantStyles[variant];
+  const { bg, text, border, shadowColor } = variantConfig[variant];
   const { container, text: textSize } = sizeStyles[size];
+
+  const shadowStyle = variant === 'primary' || variant === 'secondary' ? {
+    shadowColor,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  } : {};
 
   return (
     <AnimatedPressable
@@ -65,7 +81,7 @@ export function Button({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={disabled}
-      style={animatedStyle}
+      style={[animatedStyle, shadowStyle]}
       className={`
         ${bg} ${border || ''} ${container}
         rounded-2xl flex-row items-center justify-center
@@ -74,7 +90,7 @@ export function Button({
       `}
     >
       {icon && <View className="mr-2">{icon}</View>}
-      <Text className={`${text} ${textSize} font-semibold`}>
+      <Text className={`${text} ${textSize} font-bold tracking-wide`}>
         {children}
       </Text>
     </AnimatedPressable>
