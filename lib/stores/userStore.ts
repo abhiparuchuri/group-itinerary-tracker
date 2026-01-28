@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
 import { User } from '../types/database';
+import { storage } from '../utils/storage';
 
 interface UserState {
   user: User | null;
@@ -92,7 +92,7 @@ export const useUserStore = create<UserState>()(
     }),
     {
       name: 'user-storage',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => storage),
       partialize: (state) => ({
         user: state.user,
         isOnboarded: state.isOnboarded
