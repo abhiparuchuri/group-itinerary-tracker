@@ -1,12 +1,15 @@
-import { View, Text, SafeAreaView, ScrollView, Pressable, Share } from 'react-native';
+import { View, Text, SafeAreaView, ScrollView, Pressable, Share, Platform, Alert } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Card, Button, Avatar } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { Trip, User, TripMember } from '@/lib/types/database';
 import { useTripStore } from '@/lib/stores/tripStore';
+import { useItineraryStore } from '@/lib/stores/itineraryStore';
+import { useUserStore } from '@/lib/stores/userStore';
 import { useRealtimeTrip } from '@/lib/hooks/useRealtimeTrip';
 
 interface MemberWithUser extends TripMember {
@@ -18,7 +21,13 @@ export default function TripDetailScreen() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [members, setMembers] = useState<MemberWithUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+  const [isEditingDates, setIsEditingDates] = useState(false);
   const setCurrentTrip = useTripStore((state) => state.setCurrentTrip);
+  const fetchTrips = useTripStore((state) => state.fetchTrips);
+  const { addDaysForDateRange, fetchItinerary } = useItineraryStore();
+  const user = useUserStore((state) => state.user);
 
   // Subscribe to realtime updates for this trip
   useRealtimeTrip(id);
@@ -26,6 +35,7 @@ export default function TripDetailScreen() {
   useEffect(() => {
     if (id) {
       fetchTripDetails();
+      fetchItinerary(id); // Load existing itinerary days
     }
   }, [id]);
 
@@ -76,8 +86,57 @@ export default function TripDetailScreen() {
     }
   }
 
+  function handleShowOptions() {
+    Alert.alert(
+      'Trip Options',
+      undefined,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Trip',
+          style: 'destructive',
+          onPress: handleDeleteTrip,
+        },
+      ]
+    );
+  }
+
+  async function handleDeleteTrip() {
+    if (!trip) return;
+
+    Alert.alert(
+      'Delete Trip',
+      `Are you sure you want to delete "${trip.name}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase
+              .from('trips')
+              .delete()
+              .eq('id', trip.id);
+
+            if (error) {
+              Alert.alert('Error', 'Failed to delete trip. Please try again.');
+              console.error('Error deleting trip:', error);
+              return;
+            }
+
+            // Refresh the trips list to reflect deletion
+            if (user) {
+              await fetchTrips(user.id);
+            }
+            router.back();
+          },
+        },
+      ]
+    );
+  }
+
   function formatDate(dateString: string | null) {
-    if (!dateString) return 'Not set';
+    if (!dateString) return isEditingDates ? 'Tap to set' : 'Not set';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       weekday: 'short',
@@ -85,6 +144,36 @@ export default function TripDetailScreen() {
       day: 'numeric',
       year: 'numeric',
     });
+  }
+
+  async function handleDateChange(type: 'start' | 'end', date: Date | undefined) {
+    if (!date || !trip) return;
+
+    const field = type === 'start' ? 'start_date' : 'end_date';
+    const dateStr = date.toISOString().split('T')[0];
+
+    const { error } = await supabase
+      .from('trips')
+      .update({ [field]: dateStr })
+      .eq('id', trip.id);
+
+    if (!error) {
+      const updatedTrip = { ...trip, [field]: dateStr };
+      setTrip(updatedTrip);
+
+      // Auto-create itinerary days when both dates are set
+      const startDate = type === 'start' ? dateStr : trip.start_date;
+      const endDate = type === 'end' ? dateStr : trip.end_date;
+
+      if (startDate && endDate) {
+        await addDaysForDateRange(trip.id, startDate, endDate);
+      }
+    }
+
+    if (Platform.OS === 'android') {
+      setShowStartPicker(false);
+      setShowEndPicker(false);
+    }
   }
 
   if (isLoading) {
@@ -105,13 +194,33 @@ export default function TripDetailScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: trip.name }} />
+      <Stack.Screen
+        options={{
+          title: trip.name,
+          headerShown: true,
+          headerStyle: { backgroundColor: '#FFF9F0' },
+          headerTintColor: '#2C3E50',
+          headerLeft: () => (
+            <Pressable onPress={() => router.back()} className="p-2 mr-2">
+              <FontAwesome name="chevron-left" size={20} color="#2C3E50" />
+            </Pressable>
+          ),
+        }}
+      />
 
       <SafeAreaView className="flex-1 bg-cream">
         <ScrollView className="flex-1 px-6">
           {/* Trip Header */}
           <Animated.View entering={FadeInDown.delay(100)} className="py-4">
-            <Text className="text-3xl font-bold text-charcoal">{trip.name}</Text>
+            <View className="flex-row items-center justify-between">
+              <Text className="text-3xl font-bold text-charcoal flex-1">{trip.name}</Text>
+              <Pressable
+                onPress={handleShowOptions}
+                className="p-2 ml-2"
+              >
+                <FontAwesome name="ellipsis-v" size={20} color="#2C3E50" />
+              </Pressable>
+            </View>
             {trip.description && (
               <Text className="text-gray-600 mt-2">{trip.description}</Text>
             )}
@@ -119,7 +228,7 @@ export default function TripDetailScreen() {
 
           {/* Join Code Card */}
           <Animated.View entering={FadeInUp.delay(200)}>
-            <Card className="bg-coral-500 p-6">
+            <View className="bg-coral-500 rounded-3xl p-6 shadow-lg">
               <View className="flex-row items-center justify-between">
                 <View>
                   <Text className="text-white/80 text-sm">Share this code</Text>
@@ -134,29 +243,103 @@ export default function TripDetailScreen() {
                   <FontAwesome name="share" size={20} color="white" />
                 </Pressable>
               </View>
-            </Card>
+            </View>
           </Animated.View>
 
           {/* Dates */}
           <Animated.View entering={FadeInUp.delay(300)} className="mt-6">
-            <Text className="text-lg font-semibold text-charcoal mb-3">Dates</Text>
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center">
+                <Text className="text-lg font-semibold text-charcoal">Dates</Text>
+                <Text className="ml-2">{isEditingDates ? '🔓' : '🔒'}</Text>
+              </View>
+              <Pressable
+                onPress={() => setIsEditingDates(!isEditingDates)}
+                className={`px-3 py-1.5 rounded-full ${isEditingDates ? 'bg-coral-500' : 'bg-gray-200'}`}
+              >
+                <Text className={`text-sm font-medium ${isEditingDates ? 'text-white' : 'text-charcoal'}`}>
+                  {isEditingDates ? 'Done' : 'Edit'}
+                </Text>
+              </Pressable>
+            </View>
             <Card>
               <View className="flex-row">
-                <View className="flex-1">
+                <Pressable
+                  className="flex-1"
+                  onPress={() => isEditingDates && setShowStartPicker(true)}
+                  disabled={!isEditingDates}
+                >
                   <Text className="text-gray-500 text-sm">Start Date</Text>
-                  <Text className="text-charcoal font-medium mt-1">
+                  <Text className={`font-medium mt-1 ${isEditingDates ? 'text-coral-500' : 'text-charcoal'}`}>
                     {formatDate(trip.start_date)}
                   </Text>
-                </View>
+                </Pressable>
                 <View className="w-px bg-gray-200 mx-4" />
-                <View className="flex-1">
+                <Pressable
+                  className="flex-1"
+                  onPress={() => isEditingDates && setShowEndPicker(true)}
+                  disabled={!isEditingDates}
+                >
                   <Text className="text-gray-500 text-sm">End Date</Text>
-                  <Text className="text-charcoal font-medium mt-1">
+                  <Text className={`font-medium mt-1 ${isEditingDates ? 'text-coral-500' : 'text-charcoal'}`}>
                     {formatDate(trip.end_date)}
                   </Text>
-                </View>
+                </Pressable>
               </View>
             </Card>
+
+            {(showStartPicker || showEndPicker) && Platform.OS === 'ios' && (
+              <View className="bg-gray-100 rounded-2xl mt-4 p-4">
+                <View className="flex-row justify-between items-center mb-2">
+                  <Text className="text-charcoal font-semibold">
+                    {showStartPicker ? 'Select Start Date' : 'Select End Date'}
+                  </Text>
+                  <Pressable
+                    onPress={() => {
+                      setShowStartPicker(false);
+                      setShowEndPicker(false);
+                    }}
+                    className="bg-coral-500 px-4 py-2 rounded-full"
+                  >
+                    <Text className="text-white font-semibold">Done</Text>
+                  </Pressable>
+                </View>
+                <DateTimePicker
+                  value={
+                    showStartPicker
+                      ? trip.start_date ? new Date(trip.start_date) : new Date()
+                      : trip.end_date ? new Date(trip.end_date) : new Date()
+                  }
+                  mode="date"
+                  display="spinner"
+                  minimumDate={showEndPicker && trip.start_date ? new Date(trip.start_date) : undefined}
+                  onChange={(_, date) => handleDateChange(showStartPicker ? 'start' : 'end', date)}
+                />
+              </View>
+            )}
+
+            {showStartPicker && Platform.OS === 'android' && (
+              <DateTimePicker
+                value={trip.start_date ? new Date(trip.start_date) : new Date()}
+                mode="date"
+                onChange={(_, date) => {
+                  setShowStartPicker(false);
+                  handleDateChange('start', date);
+                }}
+              />
+            )}
+
+            {showEndPicker && Platform.OS === 'android' && (
+              <DateTimePicker
+                value={trip.end_date ? new Date(trip.end_date) : new Date()}
+                mode="date"
+                minimumDate={trip.start_date ? new Date(trip.start_date) : undefined}
+                onChange={(_, date) => {
+                  setShowEndPicker(false);
+                  handleDateChange('end', date);
+                }}
+              />
+            )}
           </Animated.View>
 
           {/* Members */}

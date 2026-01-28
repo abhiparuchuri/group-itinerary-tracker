@@ -4,46 +4,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button.web';
 import { Input } from '@/components/ui/Input.web';
 import { Card } from '@/components/ui/Card.web';
+import { Avatar } from '@/components/ui/Avatar.web';
+import { PencilIcon, ChevronRightIcon } from '@/components/icons';
 import { useUserStore } from '@/lib/stores/userStore';
-import { cn } from '@/lib/utils/cn';
-
-function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg' | 'xl' }) {
-  const initials = name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-
-  const sizeClasses = {
-    sm: 'w-10 h-10 text-sm',
-    md: 'w-12 h-12 text-base',
-    lg: 'w-16 h-16 text-xl',
-    xl: 'w-24 h-24 text-3xl',
-  };
-
-  const colors = [
-    'bg-[#FF6B6B]',
-    'bg-[#4ECDC4]',
-    'bg-[#FFE66D]',
-    'bg-[#95E1D3]',
-    'bg-[#F38181]',
-  ];
-
-  const colorIndex = name.charCodeAt(0) % colors.length;
-
-  return (
-    <div
-      className={cn(
-        'rounded-full flex items-center justify-center text-white font-bold',
-        sizeClasses[size],
-        colors[colorIndex]
-      )}
-    >
-      {initials}
-    </div>
-  );
-}
 
 export default function ProfileScreen() {
   const { user, updateDisplayName } = useUserStore();
@@ -74,6 +37,12 @@ export default function ProfileScreen() {
     setIsEditing(false);
   }
 
+  function cancelEditing() {
+    setIsEditing(false);
+    setNewName(user?.display_name || '');
+    setError('');
+  }
+
   return (
     <div className="min-h-screen bg-[#FFF9F0]">
       <div className="max-w-2xl mx-auto px-6 py-8">
@@ -97,27 +66,13 @@ export default function ProfileScreen() {
                   error={error}
                   maxLength={30}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newName.trim().length >= 2) {
-                      handleSaveName();
-                    }
-                    if (e.key === 'Escape') {
-                      setIsEditing(false);
-                      setNewName(user?.display_name || '');
-                      setError('');
-                    }
+                    if (e.key === 'Enter' && newName.trim().length >= 2) handleSaveName();
+                    if (e.key === 'Escape') cancelEditing();
                   }}
                 />
 
                 <div className="flex gap-3 mt-4">
-                  <Button
-                    onPress={() => {
-                      setIsEditing(false);
-                      setNewName(user?.display_name || '');
-                      setError('');
-                    }}
-                    variant="ghost"
-                    fullWidth
-                  >
+                  <Button onPress={cancelEditing} variant="ghost" fullWidth>
                     Cancel
                   </Button>
                   <Button
@@ -186,27 +141,9 @@ export default function ProfileScreen() {
 
         {/* Footer */}
         <div className="mt-8 text-center animate-in fade-in duration-500 delay-500">
-          <p className="text-gray-400 text-sm">
-            Made with ❤️ for travelers
-          </p>
+          <p className="text-gray-400 text-sm">Made with love for travelers</p>
         </div>
       </div>
     </div>
-  );
-}
-
-function PencilIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-    </svg>
-  );
-}
-
-function ChevronRightIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-    </svg>
   );
 }

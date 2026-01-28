@@ -1,6 +1,6 @@
 import { View, Text, SafeAreaView, ScrollView, Pressable, Alert } from 'react-native';
 import { useEffect, useState } from 'react';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, Stack, router } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Card, Button, Input, Avatar } from '@/components/ui';
@@ -109,13 +109,25 @@ export default function ExpensesScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Expenses', headerShown: true }} />
+      <Stack.Screen
+        options={{
+          title: 'Expenses',
+          headerShown: true,
+          headerStyle: { backgroundColor: '#FFF9F0' },
+          headerTintColor: '#2C3E50',
+          headerLeft: () => (
+            <Pressable onPress={() => router.back()} className="p-2 mr-2">
+              <FontAwesome name="chevron-left" size={20} color="#2C3E50" />
+            </Pressable>
+          ),
+        }}
+      />
 
       <SafeAreaView className="flex-1 bg-cream">
         <ScrollView className="flex-1 px-6">
           {/* Summary Card */}
           <Animated.View entering={FadeInDown.delay(100)} className="py-4">
-            <Card className="bg-coral-500 p-6">
+            <View className="bg-coral-500 rounded-3xl p-6 shadow-lg">
               <Text className="text-white/80 text-sm">Total Trip Expenses</Text>
               <Text className="text-white text-4xl font-bold mt-1">
                 {formatCurrency(totalExpenses)}
@@ -123,7 +135,7 @@ export default function ExpensesScreen() {
               <Text className="text-white/80 text-sm mt-2">
                 {expenses.length} expense{expenses.length !== 1 ? 's' : ''}
               </Text>
-            </Card>
+            </View>
           </Animated.View>
 
           {/* Balances */}

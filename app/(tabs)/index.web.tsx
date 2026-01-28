@@ -1,39 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { Button } from '@/components/ui/Button.web';
 import { Input } from '@/components/ui/Input.web';
 import { Card } from '@/components/ui/Card.web';
+import { Modal } from '@/components/ui/Modal.web';
+import { PlusIcon, UsersIcon, CalendarIcon } from '@/components/icons';
 import { useUserStore } from '@/lib/stores/userStore';
 import { useTripStore } from '@/lib/stores/tripStore';
-import { cn } from '@/lib/utils/cn';
-
-function Modal({
-  isOpen,
-  onClose,
-  children,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  if (!isOpen) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
+import { formatDateShort, getGreeting } from '@/lib/utils/formatters';
 
 export default function TripsScreen() {
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -80,17 +56,16 @@ export default function TripsScreen() {
     }
   }
 
-  function formatDate(dateString: string | null) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  function closeCreateModal() {
+    setShowCreateModal(false);
+    setTripName('');
+    setError('');
   }
 
-  function getGreeting() {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+  function closeJoinModal() {
+    setShowJoinModal(false);
+    setJoinCode('');
+    setError('');
   }
 
   return (
@@ -153,8 +128,8 @@ export default function TripsScreen() {
                       {(item.start_date || item.end_date) && (
                         <div className="flex items-center mt-2 text-gray-500 text-sm">
                           <CalendarIcon className="w-4 h-4 mr-2" />
-                          {formatDate(item.start_date)}
-                          {item.end_date && ` → ${formatDate(item.end_date)}`}
+                          {formatDateShort(item.start_date)}
+                          {item.end_date && ` → ${formatDateShort(item.end_date)}`}
                         </div>
                       )}
                       <div className="flex items-center mt-2 text-gray-500 text-sm">
@@ -174,16 +149,14 @@ export default function TripsScreen() {
       </div>
 
       {/* Create Trip Modal */}
-      <Modal isOpen={showCreateModal} onClose={() => { setShowCreateModal(false); setTripName(''); setError(''); }}>
+      <Modal isOpen={showCreateModal} onClose={closeCreateModal}>
         <div className="bg-white rounded-3xl p-8 shadow-2xl">
           <div className="flex flex-col items-center mb-6">
             <div className="w-16 h-16 bg-[#fff5f5] rounded-2xl flex items-center justify-center mb-4">
               <span className="text-3xl">✈️</span>
             </div>
             <h2 className="text-2xl font-bold text-[#2C3E50]">Create New Trip</h2>
-            <p className="text-gray-500 text-center mt-1">
-              Give your adventure a name
-            </p>
+            <p className="text-gray-500 text-center mt-1">Give your adventure a name</p>
           </div>
 
           <Input
@@ -193,18 +166,12 @@ export default function TripsScreen() {
             placeholder="e.g., Summer in Italy"
             error={error}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && tripName.trim()) {
-                handleCreateTrip();
-              }
+              if (e.key === 'Enter' && tripName.trim()) handleCreateTrip();
             }}
           />
 
           <div className="flex gap-3 mt-6">
-            <Button
-              onPress={() => { setShowCreateModal(false); setTripName(''); setError(''); }}
-              variant="ghost"
-              fullWidth
-            >
+            <Button onPress={closeCreateModal} variant="ghost" fullWidth>
               Cancel
             </Button>
             <Button
@@ -219,16 +186,14 @@ export default function TripsScreen() {
       </Modal>
 
       {/* Join Trip Modal */}
-      <Modal isOpen={showJoinModal} onClose={() => { setShowJoinModal(false); setJoinCode(''); setError(''); }}>
+      <Modal isOpen={showJoinModal} onClose={closeJoinModal}>
         <div className="bg-white rounded-3xl p-8 shadow-2xl">
           <div className="flex flex-col items-center mb-6">
             <div className="w-16 h-16 bg-[#e6fffa] rounded-2xl flex items-center justify-center mb-4">
               <span className="text-3xl">🤝</span>
             </div>
             <h2 className="text-2xl font-bold text-[#2C3E50]">Join a Trip</h2>
-            <p className="text-gray-500 text-center mt-1">
-              Enter the code from your friend
-            </p>
+            <p className="text-gray-500 text-center mt-1">Enter the code from your friend</p>
           </div>
 
           <Input
@@ -240,18 +205,12 @@ export default function TripsScreen() {
             maxLength={6}
             style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && joinCode.length === 6) {
-                handleJoinTrip();
-              }
+              if (e.key === 'Enter' && joinCode.length === 6) handleJoinTrip();
             }}
           />
 
           <div className="flex gap-3 mt-6">
-            <Button
-              onPress={() => { setShowJoinModal(false); setJoinCode(''); setError(''); }}
-              variant="ghost"
-              fullWidth
-            >
+            <Button onPress={closeJoinModal} variant="ghost" fullWidth>
               Cancel
             </Button>
             <Button
@@ -266,30 +225,5 @@ export default function TripsScreen() {
         </div>
       </Modal>
     </div>
-  );
-}
-
-// Simple icon components
-function PlusIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-    </svg>
-  );
-}
-
-function UsersIcon({ className }: { className?: string }) {
-  return (
-    <svg className={cn('w-4 h-4', className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-    </svg>
-  );
-}
-
-function CalendarIcon({ className }: { className?: string }) {
-  return (
-    <svg className={cn('w-4 h-4', className)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
   );
 }

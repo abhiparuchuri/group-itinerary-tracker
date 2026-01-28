@@ -14,6 +14,7 @@ interface ItineraryState {
   // Actions
   fetchItinerary: (tripId: string) => Promise<void>;
   addDay: (tripId: string, date: string) => Promise<ItineraryDay | null>;
+  addDaysForDateRange: (tripId: string, startDate: string, endDate: string) => Promise<void>;
   updateDay: (dayId: string, notes: string) => Promise<void>;
   deleteDay: (dayId: string) => Promise<void>;
   addActivity: (dayId: string, activity: Partial<Activity>, userId: string) => Promise<Activity | null>;
@@ -95,6 +96,44 @@ export const useItineraryStore = create<ItineraryState>((set, get) => ({
 
     set({ days: newDays });
     return newDay;
+  },
+
+  addDaysForDateRange: async (tripId: string, startDate: string, endDate: string) => {
+    const { days, fetchItinerary } = get();
+    const existingDates = new Set(days.map((d) => d.date));
+
+    // Parse dates in local timezone to avoid off-by-one errors
+    const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+    const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+    const start = new Date(startYear, startMonth - 1, startDay);
+    const end = new Date(endYear, endMonth - 1, endDay);
+    const datesToCreate: string[] = [];
+
+    // Generate all dates in range (inclusive)
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      if (!existingDates.has(dateStr)) {
+        datesToCreate.push(dateStr);
+      }
+    }
+
+    if (datesToCreate.length === 0) return;
+
+    // Bulk insert days
+    const { error } = await supabase
+      .from('itinerary_days')
+      .insert(datesToCreate.map((date) => ({ trip_id: tripId, date })) as any);
+
+    if (error) {
+      console.error('Error creating days:', error);
+      return;
+    }
+
+    // Refresh itinerary to get all days with IDs
+    await fetchItinerary(tripId);
   },
 
   updateDay: async (dayId: string, notes: string) => {

@@ -11,7 +11,7 @@ interface CardProps {
   children: React.ReactNode;
   onPress?: () => void;
   className?: string;
-  variant?: 'elevated' | 'outlined' | 'filled';
+  variant?: 'elevated' | 'outlined' | 'filled' | 'custom';
 }
 
 export function Card({
@@ -42,6 +42,7 @@ export function Card({
     elevated: 'bg-white shadow-lg shadow-charcoal/10',
     outlined: 'bg-white border-2 border-gray-200',
     filled: 'bg-cream',
+    custom: '', // No default background, allows custom colors via className
   };
 
   const baseClasses = `rounded-3xl p-4 ${variantClasses[variant]} ${className}`;

@@ -2,33 +2,8 @@
 
 import { usePathname, router } from 'expo-router';
 import { Slot } from 'expo-router';
+import { SuitcaseIcon, UserIcon } from '@/components/icons';
 import { cn } from '@/lib/utils/cn';
-
-function SuitcaseIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-      />
-    </svg>
-  );
-}
-
-function UserIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-      />
-    </svg>
-  );
-}
 
 interface TabButtonProps {
   href: string;
@@ -43,9 +18,7 @@ function TabButton({ href, icon, label, isActive }: TabButtonProps) {
       onClick={() => router.push(href)}
       className={cn(
         'flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all duration-200',
-        isActive
-          ? 'text-[#FF6B6B]'
-          : 'text-gray-400 hover:text-gray-600'
+        isActive ? 'text-[#FF6B6B]' : 'text-gray-400 hover:text-gray-600'
       )}
     >
       <div
@@ -71,12 +44,10 @@ export default function TabLayout() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Main content */}
       <main className="flex-1">
         <Slot />
       </main>
 
-      {/* Bottom Tab Bar */}
       <nav className="sticky bottom-0 bg-white border-t border-gray-100 shadow-lg shadow-black/5">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex justify-center gap-8 py-2">

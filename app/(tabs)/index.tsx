@@ -3,15 +3,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { router } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Animated, { FadeInDown, FadeInUp, FadeIn } from 'react-native-reanimated';
-import { Button, Card, Input } from '@/components/ui';
+import { Button, Card, Input, CitySearch } from '@/components/ui';
 import { useUserStore } from '@/lib/stores/userStore';
 import { useTripStore } from '@/lib/stores/tripStore';
+import { City } from '@/lib/mapbox';
 
 export default function TripsScreen() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [joinCode, setJoinCode] = useState('');
-  const [tripName, setTripName] = useState('');
+  const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -32,13 +33,13 @@ export default function TripsScreen() {
   }, [user?.id]);
 
   async function handleCreateTrip() {
-    if (!user?.id || !tripName.trim()) return;
+    if (!user?.id || !selectedCity) return;
 
     setError('');
-    const trip = await createTrip(tripName.trim(), user.id);
+    const trip = await createTrip(selectedCity.name, user.id);
 
     if (trip) {
-      setTripName('');
+      setSelectedCity(null);
       setShowCreateModal(false);
       router.push(`/trip/${trip.id}`);
     } else {
@@ -193,7 +194,7 @@ export default function TripsScreen() {
         <Pressable
           onPress={() => {
             setShowCreateModal(false);
-            setTripName('');
+            setSelectedCity(null);
             setError('');
           }}
           className="absolute inset-0 bg-black/50 items-center justify-center px-6"
@@ -219,15 +220,15 @@ export default function TripsScreen() {
                   </View>
                   <Text className="text-2xl font-bold text-charcoal">Create New Trip</Text>
                   <Text className="text-gray-500 text-center mt-1">
-                    Give your adventure a name
+                    Where are you going?
                   </Text>
                 </View>
 
-                <Input
-                  label="Trip Name"
-                  value={tripName}
-                  onChangeText={setTripName}
-                  placeholder="e.g., Summer in Italy"
+                <CitySearch
+                  label="Destination"
+                  value={selectedCity}
+                  onSelect={setSelectedCity}
+                  placeholder="Search for a city..."
                   error={error}
                 />
 
@@ -236,7 +237,7 @@ export default function TripsScreen() {
                     <Button
                       onPress={() => {
                         setShowCreateModal(false);
-                        setTripName('');
+                        setSelectedCity(null);
                         setError('');
                       }}
                       variant="ghost"
@@ -248,7 +249,7 @@ export default function TripsScreen() {
                   <View className="flex-1">
                     <Button
                       onPress={handleCreateTrip}
-                      disabled={!tripName.trim() || isLoading}
+                      disabled={!selectedCity || isLoading}
                       fullWidth
                     >
                       {isLoading ? 'Creating...' : 'Create'}

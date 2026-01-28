@@ -1,12 +1,17 @@
-import { View, Text, SafeAreaView, ScrollView, Pressable, Alert } from 'react-native';
-import { useEffect, useState } from 'react';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { View, Text, Pressable, Alert, TextInput, Keyboard, Dimensions } from 'react-native';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useLocalSearchParams, Stack, router } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated';
-import { Card, Button, Input, DatePicker } from '@/components/ui';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Card, Button, Input } from '@/components/ui';
+import { TripMap } from '@/components/map/TripMap';
 import { useItineraryStore } from '@/lib/stores/itineraryStore';
 import { useUserStore } from '@/lib/stores/userStore';
 import { Activity, ActivityCategory } from '@/lib/types/database';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const CATEGORY_CONFIG: Record<ActivityCategory, { icon: string; color: string; bg: string }> = {
   food: { icon: 'cutlery', color: '#FF6B6B', bg: 'bg-coral-100' },
@@ -15,6 +20,15 @@ const CATEGORY_CONFIG: Record<ActivityCategory, { icon: string; color: string; b
   lodging: { icon: 'bed', color: '#3498DB', bg: 'bg-blue-100' },
   other: { icon: 'map-marker', color: '#95A5A6', bg: 'bg-gray-100' },
 };
+
+interface SearchResult {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  category: ActivityCategory;
+}
 
 function formatDate(dateString: string) {
   const date = new Date(dateString + 'T00:00:00');
@@ -40,11 +54,16 @@ export default function ItineraryScreen() {
   const { days, isLoading, fetchItinerary, addDay, addActivity, deleteDay, deleteActivity } =
     useItineraryStore();
 
-  const [showAddDay, setShowAddDay] = useState(false);
-  const [newDate, setNewDate] = useState<Date | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
   const [showAddActivity, setShowAddActivity] = useState<string | null>(null);
   const [newActivityName, setNewActivityName] = useState('');
   const [newActivityCategory, setNewActivityCategory] = useState<ActivityCategory>('other');
+
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ['25%', '50%', '90%'], []);
 
   useEffect(() => {
     if (id) {
@@ -52,14 +71,69 @@ export default function ItineraryScreen() {
     }
   }, [id]);
 
-  async function handleAddDay() {
-    if (!id || !newDate) return;
+  // Mock search function - replace with real Mapbox/Google Places API
+  async function handleSearch(query: string) {
+    setSearchQuery(query);
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
 
-    // Format date as YYYY-MM-DD
-    const dateString = newDate.toISOString().split('T')[0];
-    await addDay(id, dateString);
-    setNewDate(null);
-    setShowAddDay(false);
+    setIsSearching(true);
+    // Simulate API delay
+    await new Promise((r) => setTimeout(r, 300));
+
+    // Mock results - replace with real API call
+    const mockResults: SearchResult[] = [
+      {
+        id: '1',
+        name: `${query} Restaurant`,
+        address: '123 Main St',
+        latitude: 40.7128,
+        longitude: -74.006,
+        category: 'food',
+      },
+      {
+        id: '2',
+        name: `${query} Museum`,
+        address: '456 Art Ave',
+        latitude: 40.7138,
+        longitude: -74.008,
+        category: 'attraction',
+      },
+      {
+        id: '3',
+        name: `${query} Hotel`,
+        address: '789 Stay Blvd',
+        latitude: 40.7148,
+        longitude: -74.01,
+        category: 'lodging',
+      },
+    ];
+
+    setSearchResults(mockResults);
+    setIsSearching(false);
+  }
+
+  async function handleAddFromSearch(result: SearchResult, dayId: string) {
+    if (!user?.id) return;
+
+    await addActivity(
+      dayId,
+      {
+        name: result.name,
+        location_name: result.address,
+        latitude: result.latitude,
+        longitude: result.longitude,
+        category: result.category,
+      },
+      user.id
+    );
+
+    setSearchQuery('');
+    setSearchResults([]);
+    setSelectedDayId(null);
+    Keyboard.dismiss();
   }
 
   async function handleAddActivity(dayId: string) {
@@ -105,22 +179,145 @@ export default function ItineraryScreen() {
     ]);
   }
 
-  return (
-    <>
-      <Stack.Screen options={{ title: 'Itinerary', headerShown: true }} />
+  // Get all activities with locations for map markers
+  const mapMarkers = days.flatMap((day) =>
+    day.activities
+      .filter((a) => a.latitude && a.longitude)
+      .map((a) => ({
+        id: a.id,
+        name: a.name,
+        latitude: a.latitude!,
+        longitude: a.longitude!,
+        category: a.category,
+      }))
+  );
 
-      <SafeAreaView className="flex-1 bg-cream">
-        <ScrollView className="flex-1 px-6">
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack.Screen
+        options={{
+          title: 'Itinerary',
+          headerShown: true,
+          headerTransparent: true,
+          headerStyle: { backgroundColor: 'transparent' },
+          headerTintColor: '#2C3E50',
+          headerLeft: () => (
+            <Pressable onPress={() => router.back()} className="p-2 mr-2">
+              <FontAwesome name="chevron-left" size={20} color="#2C3E50" />
+            </Pressable>
+          ),
+          headerTitle: '',
+        }}
+      />
+
+      {/* Map Background */}
+      <View className="flex-1">
+        <TripMap markers={mapMarkers} />
+
+        {/* Map markers legend */}
+        {mapMarkers.length > 0 && (
+          <View className="absolute top-24 right-4 bg-white rounded-2xl p-3 shadow-lg">
+            {Object.entries(CATEGORY_CONFIG).slice(0, 3).map(([cat, config]) => (
+              <View key={cat} className="flex-row items-center mb-1 last:mb-0">
+                <View
+                  className="w-3 h-3 rounded-full mr-2"
+                  style={{ backgroundColor: config.color }}
+                />
+                <Text className="text-xs text-gray-600 capitalize">{cat}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* Bottom Sheet */}
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={1}
+        snapPoints={snapPoints}
+        backgroundStyle={{ backgroundColor: '#FFF9F0', borderRadius: 24 }}
+        handleIndicatorStyle={{ backgroundColor: '#CBD5E0', width: 40 }}
+      >
+        <BottomSheetScrollView
+          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Search Bar */}
+          <View className="mb-4">
+            <View className="flex-row items-center bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100">
+              <FontAwesome name="search" size={16} color="#9CA3AF" />
+              <TextInput
+                className="flex-1 ml-3 text-charcoal text-base"
+                placeholder="Search places to add..."
+                placeholderTextColor="#9CA3AF"
+                value={searchQuery}
+                onChangeText={handleSearch}
+              />
+              {searchQuery.length > 0 && (
+                <Pressable onPress={() => { setSearchQuery(''); setSearchResults([]); }}>
+                  <FontAwesome name="times-circle" size={18} color="#9CA3AF" />
+                </Pressable>
+              )}
+            </View>
+
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <View className="mt-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                {searchResults.map((result, idx) => (
+                  <View key={result.id}>
+                    {idx > 0 && <View className="h-px bg-gray-100" />}
+                    <Pressable
+                      onPress={() => {
+                        if (days.length > 0) {
+                          setSelectedDayId(days[0].id);
+                        }
+                      }}
+                      className="p-4"
+                    >
+                      <View className="flex-row items-center">
+                        <View
+                          className="w-8 h-8 rounded-full items-center justify-center mr-3"
+                          style={{ backgroundColor: CATEGORY_CONFIG[result.category].color + '20' }}
+                        >
+                          <FontAwesome
+                            name={CATEGORY_CONFIG[result.category].icon as any}
+                            size={14}
+                            color={CATEGORY_CONFIG[result.category].color}
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-charcoal font-medium">{result.name}</Text>
+                          <Text className="text-gray-500 text-sm">{result.address}</Text>
+                        </View>
+                      </View>
+
+                      {/* Day selector */}
+                      {selectedDayId !== null && (
+                        <View className="mt-3 flex-row flex-wrap gap-2">
+                          {days.map((day, dayIdx) => (
+                            <Pressable
+                              key={day.id}
+                              onPress={() => handleAddFromSearch(result, day.id)}
+                              className="bg-coral-500 px-3 py-2 rounded-full"
+                            >
+                              <Text className="text-white text-sm font-medium">
+                                Day {dayIdx + 1}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      )}
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
           {/* Header */}
-          <View className="flex-row items-center justify-between py-4">
-            <Text className="text-2xl font-bold text-charcoal">Your Itinerary</Text>
-            <Button
-              onPress={() => setShowAddDay(true)}
-              size="sm"
-              icon={<FontAwesome name="plus" size={14} color="white" />}
-            >
-              Add Day
-            </Button>
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-2xl font-bold text-charcoal">Itinerary</Text>
+            <Text className="text-gray-500">{days.length} days</Text>
           </View>
 
           {/* Days List */}
@@ -129,13 +326,13 @@ export default function ItineraryScreen() {
               <Text className="text-gray-500">Loading itinerary...</Text>
             </View>
           ) : days.length === 0 ? (
-            <Animated.View entering={FadeInUp} className="items-center py-16">
-              <Text className="text-6xl mb-4">{'📅'}</Text>
+            <View className="items-center py-12">
+              <Text className="text-5xl mb-4">📅</Text>
               <Text className="text-xl font-semibold text-charcoal mb-2">No days planned</Text>
-              <Text className="text-gray-500 text-center">
-                Add your first day to start{'\n'}planning your adventure!
+              <Text className="text-gray-500 text-center mb-4">
+                Set your trip dates to auto-generate{'\n'}days, or search for places above!
               </Text>
-            </Animated.View>
+            </View>
           ) : (
             days.map((day, dayIndex) => (
               <Animated.View
@@ -178,7 +375,7 @@ export default function ItineraryScreen() {
                       className="py-4 items-center"
                     >
                       <Text className="text-gray-400">
-                        No activities yet. Tap + to add one!
+                        No activities yet. Tap + or search above!
                       </Text>
                     </Pressable>
                   ) : (
@@ -262,48 +459,9 @@ export default function ItineraryScreen() {
               </Animated.View>
             ))
           )}
-
-          <View className="h-8" />
-        </ScrollView>
-
-        {/* Add Day Modal */}
-        {showAddDay && (
-          <View className="absolute inset-0 bg-black/50 items-center justify-center px-6">
-            <Animated.View entering={FadeInUp.springify()} className="w-full">
-              <Card className="p-6">
-                <Text className="text-2xl font-bold text-charcoal mb-4">Add a Day</Text>
-
-                <DatePicker
-                  label="Date"
-                  value={newDate}
-                  onChange={setNewDate}
-                  placeholder="Select a date"
-                />
-
-                <View className="flex-row gap-3 mt-6">
-                  <View className="flex-1">
-                    <Button
-                      onPress={() => {
-                        setShowAddDay(false);
-                        setNewDate(null);
-                      }}
-                      variant="ghost"
-                    >
-                      Cancel
-                    </Button>
-                  </View>
-                  <View className="flex-1">
-                    <Button onPress={handleAddDay} disabled={!newDate}>
-                      Add Day
-                    </Button>
-                  </View>
-                </View>
-              </Card>
-            </Animated.View>
-          </View>
-        )}
-      </SafeAreaView>
-    </>
+        </BottomSheetScrollView>
+      </BottomSheet>
+    </GestureHandlerRootView>
   );
 }
 
