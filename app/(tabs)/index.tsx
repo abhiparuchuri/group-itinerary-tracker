@@ -74,23 +74,23 @@ export default function TripsScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF9F0' }}>
+    <SafeAreaView className="flex-1 bg-cream">
       {/* Header */}
-      <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 }}>
+      <View className="px-6 pt-6 pb-4">
         <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <Text style={{ color: '#6B7280', fontSize: 16, fontWeight: '500' }}>
+          <Text className="text-gray-500 text-base font-medium">
             {getGreeting()}{user?.display_name ? `, ${user.display_name}` : ''}
           </Text>
-          <Text style={{ fontSize: 30, fontWeight: 'bold', color: '#2C3E50', marginTop: 4 }}>Your Trips</Text>
+          <Text className="text-3xl font-bold text-charcoal mt-1">Your Trips</Text>
         </Animated.View>
       </View>
 
       {/* Action Buttons */}
       <Animated.View
         entering={FadeInUp.delay(200).springify()}
-        style={{ flexDirection: 'row', paddingHorizontal: 24, paddingVertical: 12, gap: 12 }}
+        className="flex-row px-6 py-3 gap-3"
       >
-        <View style={{ flex: 1 }}>
+        <View className="flex-1">
           <Button
             onPress={() => setShowCreateModal(true)}
             variant="primary"
@@ -100,7 +100,7 @@ export default function TripsScreen() {
             New Trip
           </Button>
         </View>
-        <View style={{ flex: 1 }}>
+        <View className="flex-1">
           <Button
             onPress={() => setShowJoinModal(true)}
             variant="secondary"
@@ -123,17 +123,11 @@ export default function TripsScreen() {
         ListEmptyComponent={
           <Animated.View
             entering={FadeIn.delay(300)}
-            style={{ alignItems: 'center', paddingVertical: 80, paddingHorizontal: 32 }}
+            className="items-center py-20 px-8"
           >
             <View
+              className="w-24 h-24 bg-white rounded-3xl items-center justify-center mb-6"
               style={{
-                width: 96,
-                height: 96,
-                backgroundColor: 'white',
-                borderRadius: 24,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 24,
                 shadowColor: '#2C3E50',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.08,
@@ -141,10 +135,10 @@ export default function TripsScreen() {
                 elevation: 4,
               }}
             >
-              <Text style={{ fontSize: 48 }}>{'🗺️'}</Text>
+              <Text className="text-5xl">{'🗺️'}</Text>
             </View>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#2C3E50', marginBottom: 12 }}>No trips yet</Text>
-            <Text style={{ color: '#6B7280', textAlign: 'center', fontSize: 16, lineHeight: 24 }}>
+            <Text className="text-2xl font-bold text-charcoal mb-3">No trips yet</Text>
+            <Text className="text-gray-500 text-center text-base leading-6">
               Start your adventure! Create a new trip{'\n'}or join one with a friend's code.
             </Text>
           </Animated.View>

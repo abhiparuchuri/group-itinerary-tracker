@@ -101,12 +101,12 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF9F0' }}>
+    <SafeAreaView className="flex-1 bg-cream">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+        className="flex-1"
       >
-        <View style={{ flex: 1, paddingHorizontal: 32, justifyContent: 'center' }}>
+        <View className="flex-1 px-8 justify-center">
           {/* Floating decorative orbs */}
           <FloatingOrb size={120} color="#ffc9c9" top={60} left={-30} delay={0} />
           <FloatingOrb size={80} color="#81e6d9" top={100} right={-20} delay={200} />
@@ -117,17 +117,11 @@ export default function OnboardingScreen() {
           {/* Hero section with icon */}
           <Animated.View
             entering={FadeInDown.delay(100).springify()}
-            style={{ alignItems: 'center', marginBottom: 32 }}
+            className="items-center mb-8"
           >
             <View
+              className="w-28 h-28 bg-white rounded-3xl items-center justify-center mb-6"
               style={{
-                width: 112,
-                height: 112,
-                backgroundColor: 'white',
-                borderRadius: 24,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 24,
                 shadowColor: '#FF6B6B',
                 shadowOffset: { width: 0, height: 8 },
                 shadowOpacity: 0.15,
@@ -135,19 +129,19 @@ export default function OnboardingScreen() {
                 elevation: 8,
               }}
             >
-              <Text style={{ fontSize: 56 }}>{'✈️'}</Text>
+              <Text className="text-6xl">{'✈️'}</Text>
             </View>
           </Animated.View>
 
           {/* Title and subtitle */}
-          <Animated.View entering={FadeInUp.delay(200).springify()} style={{ alignItems: 'center', marginBottom: 40 }}>
-            <Text style={{ fontSize: 36, fontWeight: 'bold', color: '#2C3E50', textAlign: 'center', marginBottom: 8 }}>
+          <Animated.View entering={FadeInUp.delay(200).springify()} className="items-center mb-10">
+            <Text className="text-4xl font-bold text-charcoal text-center mb-2">
               Welcome to
             </Text>
-            <Text style={{ fontSize: 36, fontWeight: 'bold', color: '#FF6B6B', textAlign: 'center', marginBottom: 16 }}>
+            <Text className="text-4xl font-bold text-coral-500 text-center mb-4">
               TripTogether
             </Text>
-            <Text style={{ fontSize: 18, color: '#6B7280', textAlign: 'center', lineHeight: 26, paddingHorizontal: 16 }}>
+            <Text className="text-lg text-gray-500 text-center leading-7 px-4">
               Plan amazing adventures with your{'\n'}friends and family
             </Text>
           </Animated.View>
@@ -155,11 +149,8 @@ export default function OnboardingScreen() {
           {/* Input card */}
           <Animated.View
             entering={FadeInUp.delay(400).springify()}
+            className="bg-white rounded-3xl p-6 mb-6"
             style={{
-              backgroundColor: 'white',
-              borderRadius: 24,
-              padding: 24,
-              marginBottom: 24,
               shadowColor: '#2C3E50',
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.08,
@@ -177,7 +168,7 @@ export default function OnboardingScreen() {
               maxLength={30}
             />
 
-            <View style={{ marginTop: 24 }}>
+            <View className="mt-6">
               <Button
                 onPress={handleContinue}
                 disabled={isLoading || name.trim().length < 2}
@@ -191,7 +182,7 @@ export default function OnboardingScreen() {
 
           {/* Footer note */}
           <Animated.View entering={FadeInUp.delay(600).springify()}>
-            <Text style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>
+            <Text className="text-center text-gray-400 text-sm">
               No account needed • Your data syncs automatically
             </Text>
           </Animated.View>

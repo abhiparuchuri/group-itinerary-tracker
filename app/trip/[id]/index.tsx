@@ -206,7 +206,7 @@ export default function TripDetailScreen() {
               </View>
 
               <View className="flex-1">
-                <Card className="items-center py-6" onPress={() => {}}>
+                <Card className="items-center py-6" onPress={() => router.push(`/trip/${id}/map`)}>
                   <View className="bg-sunny-100 p-3 rounded-full mb-2">
                     <FontAwesome name="map-marker" size={24} color="#FFE66D" />
                   </View>
